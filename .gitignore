@@ -1,0 +1,5 @@
+.harness/
+.tmp/
+dist/
+output/
+verify/service-harness.ci.json

@@ -1,0 +1,49 @@
+{
+  "id": "@serviceadmin",
+  "name": "Core Service Admin",
+  "description": "Core operator/admin UI service backed by the canonical lasso-serviceadmin release artifact.",
+  "version": "0.1.0",
+  "enabled": true,
+  "depend_on": ["@node"],
+  "ports": {
+    "ui": 17700
+  },
+  "urls": [
+    {
+      "label": "ui",
+      "url": "http://127.0.0.1:${UI_PORT}/",
+      "kind": "local"
+    }
+  ],
+  "artifact": {
+    "kind": "archive",
+    "source": {
+      "type": "github-release",
+      "repo": "service-lasso/lasso-serviceadmin",
+      "tag": "2026.4.18-170a1af"
+    },
+    "platforms": {
+      "win32": {
+        "assetName": "@serviceadmin-win32.zip",
+        "archiveType": "zip",
+        "command": "node",
+        "args": ["runtime/server.js"]
+      },
+      "linux": {
+        "assetName": "@serviceadmin-linux.tar.gz",
+        "archiveType": "tar.gz",
+        "command": "node",
+        "args": ["runtime/server.js"]
+      },
+      "darwin": {
+        "assetName": "@serviceadmin-darwin.tar.gz",
+        "archiveType": "tar.gz",
+        "command": "node",
+        "args": ["runtime/server.js"]
+      }
+    }
+  },
+  "healthcheck": {
+    "type": "process"
+  }
+}

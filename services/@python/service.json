@@ -1,0 +1,41 @@
+{
+  "id": "@python",
+  "name": "Python Runtime",
+  "description": "Release-backed Python runtime provider for Service Lasso services.",
+  "version": "3.11.5",
+  "role": "provider",
+  "enabled": false,
+  "executable": "python",
+  "args": ["--version"],
+  "env": {
+    "PYTHONUTF8": "1"
+  },
+  "globalenv": {
+    "PYTHON": "${SERVICE_ARTIFACT_COMMAND}",
+    "PYTHON_HOME": "${SERVICE_ARTIFACT_ROOT}",
+    "PYTHONPATH": "${SERVICE_ARTIFACT_ROOT}"
+  },
+  "urls": [
+    {
+      "label": "docs",
+      "url": "https://docs.python.org/3/",
+      "kind": "external"
+    }
+  ],
+  "artifact": {
+    "kind": "archive",
+    "source": {
+      "type": "github-release",
+      "repo": "service-lasso/lasso-python",
+      "tag": "2026.4.27-63f915c"
+    },
+    "platforms": {
+      "win32": {
+        "assetName": "lasso-python-3.11.5-win32.zip",
+        "archiveType": "zip",
+        "command": ".\\python.exe",
+        "args": ["--version"]
+      }
+    }
+  }
+}

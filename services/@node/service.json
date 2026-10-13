@@ -1,0 +1,52 @@
+{
+  "id": "@node",
+  "name": "Node Runtime",
+  "description": "Release-backed Node.js runtime provider for Service Lasso services.",
+  "version": "v24.15.0",
+  "role": "provider",
+  "enabled": true,
+  "executable": "node",
+  "args": ["--version"],
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "globalenv": {
+    "NODE": "${SERVICE_ARTIFACT_COMMAND}",
+    "NODE_HOME": "${SERVICE_ARTIFACT_ROOT}"
+  },
+  "urls": [
+    {
+      "label": "docs",
+      "url": "https://nodejs.org",
+      "kind": "external"
+    }
+  ],
+  "artifact": {
+    "kind": "archive",
+    "source": {
+      "type": "github-release",
+      "repo": "service-lasso/lasso-node",
+      "tag": "2026.4.27-eca215a"
+    },
+    "platforms": {
+      "win32": {
+        "assetName": "lasso-node-v24.15.0-win32.zip",
+        "archiveType": "zip",
+        "command": ".\\node.exe",
+        "args": ["--version"]
+      },
+      "linux": {
+        "assetName": "lasso-node-v24.15.0-linux.tar.gz",
+        "archiveType": "tar.gz",
+        "command": "./bin/node",
+        "args": ["--version"]
+      },
+      "darwin": {
+        "assetName": "lasso-node-v24.15.0-darwin.tar.gz",
+        "archiveType": "tar.gz",
+        "command": "./bin/node",
+        "args": ["--version"]
+      }
+    }
+  }
+}

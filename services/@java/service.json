@@ -1,0 +1,58 @@
+{
+  "id": "@java",
+  "name": "Java Runtime",
+  "description": "Release-backed Eclipse Temurin JRE provider for Service Lasso services.",
+  "version": "17.0.18+8",
+  "role": "provider",
+  "enabled": false,
+  "executable": "java",
+  "args": [
+    "--version"
+  ],
+  "env": {},
+  "globalenv": {
+    "JAVA": "${SERVICE_ARTIFACT_COMMAND}",
+    "JAVA_HOME": "${SERVICE_ARTIFACT_ROOT}"
+  },
+  "urls": [
+    {
+      "label": "temurin",
+      "url": "https://adoptium.net/temurin/",
+      "kind": "external"
+    }
+  ],
+  "artifact": {
+    "kind": "archive",
+    "source": {
+      "type": "github-release",
+      "repo": "service-lasso/lasso-java",
+      "tag": "2026.4.27-b313cb0"
+    },
+    "platforms": {
+      "win32": {
+        "assetName": "lasso-java-17.0.18+8-win32.zip",
+        "archiveType": "zip",
+        "command": ".\\bin\\java.exe",
+        "args": [
+          "--version"
+        ]
+      },
+      "linux": {
+        "assetName": "lasso-java-17.0.18+8-linux.tar.gz",
+        "archiveType": "tar.gz",
+        "command": "./bin/java",
+        "args": [
+          "--version"
+        ]
+      },
+      "darwin": {
+        "assetName": "lasso-java-17.0.18+8-darwin.tar.gz",
+        "archiveType": "tar.gz",
+        "command": "./bin/java",
+        "args": [
+          "--version"
+        ]
+      }
+    }
+  }
+}

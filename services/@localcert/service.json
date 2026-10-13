@@ -1,0 +1,38 @@
+{
+  "id": "@localcert",
+  "name": "Core Local Certificate Utility",
+  "description": "Release-backed local certificate bootstrap utility for Service Lasso routing dependencies.",
+  "version": "0.1.0",
+  "role": "provider",
+  "enabled": true,
+  "globalenv": {
+    "LOCALCERT_ENABLED": "true",
+    "LOCALCERT_ROOT": "${SERVICE_ARTIFACT_ROOT}",
+    "CERT_FILE": "${SERVICE_ARTIFACT_ROOT}/runtime/certs/localhost.crt",
+    "CERT_KEY": "${SERVICE_ARTIFACT_ROOT}/runtime/certs/localhost.key",
+    "CERT_PFX": "${SERVICE_ARTIFACT_ROOT}/runtime/certs/localhost.pfx",
+    "CAROOT_CERT": "${SERVICE_ARTIFACT_ROOT}/runtime/certs/caroot.crt"
+  },
+  "artifact": {
+    "kind": "archive",
+    "source": {
+      "type": "github-release",
+      "repo": "service-lasso/lasso-localcert",
+      "tag": "2026.4.27-591ed28"
+    },
+    "platforms": {
+      "win32": {
+        "assetName": "lasso-localcert-0.1.0-win32.zip",
+        "archiveType": "zip"
+      },
+      "linux": {
+        "assetName": "lasso-localcert-0.1.0-linux.tar.gz",
+        "archiveType": "tar.gz"
+      },
+      "darwin": {
+        "assetName": "lasso-localcert-0.1.0-darwin.tar.gz",
+        "archiveType": "tar.gz"
+      }
+    }
+  }
+}

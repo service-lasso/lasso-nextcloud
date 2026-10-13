@@ -1,0 +1,161 @@
+{
+  "id": "@traefik",
+  "name": "Traefik Router",
+  "description": "Release-backed Traefik edge/router service for Service Lasso baseline routing.",
+  "version": "2026.4.27-bbc7f15",
+  "enabled": true,
+  "depend_on": [
+    "@localcert",
+    "@nginx"
+  ],
+  "ports": {
+    "web": 19080,
+    "websecure": 19443,
+    "admin": 19081,
+    "https_traefik": 19082,
+    "https_nginx": 19090,
+    "https_cms": 19100,
+    "https_flow": 19110,
+    "https_flowtms": 19120,
+    "https_api": 19130,
+    "https_files": 19140,
+    "https_bpmn": 19150,
+    "mongo": 19160,
+    "typedb": 19170
+  },
+  "portmapping": {
+    "HTTP": "${WEB_PORT}",
+    "HTTPS": "${WEBSECURE_PORT}",
+    "HTTPS_TRAEFIK": "${HTTPS_TRAEFIK_PORT}",
+    "HTTPS_NGINX": "${HTTPS_NGINX_PORT}",
+    "HTTPS_CMS": "${HTTPS_CMS_PORT}",
+    "HTTPS_FLOW": "${HTTPS_FLOW_PORT}",
+    "HTTPS_FLOWTMS": "${HTTPS_FLOWTMS_PORT}",
+    "HTTPS_API": "${HTTPS_API_PORT}",
+    "HTTPS_FILES": "${HTTPS_FILES_PORT}",
+    "HTTPS_BPMN": "${HTTPS_BPMN_PORT}",
+    "TCP_MOGNO": "${MONGO_PORT}",
+    "TCP_TYPEDB": "${TYPEDB_PORT}"
+  },
+  "commandline": {
+    "win32": " --log.level=DEBUG --providers.file.filename=\"${SERVICE_ROOT}\\runtime\\dynamic.yml\" --api.insecure=true --api.dashboard=true --entryPoints.web.address=\":${WEB_PORT}\" --entryPoints.websecure.address=\":${WEBSECURE_PORT}\" --entryPoints.traefik.address=\":${ADMIN_PORT}\" --entryPoints.httpsTraefik.address=\":${HTTPS_TRAEFIK_PORT}\" --entryPoints.httpsNginx.address=\":${HTTPS_NGINX_PORT}\" --entryPoints.httpsCms.address=\":${HTTPS_CMS_PORT}\" --entryPoints.httpsFlow.address=\":${HTTPS_FLOW_PORT}\" --entryPoints.httpsFlowtms.address=\":${HTTPS_FLOWTMS_PORT}\" --entryPoints.httpsApi.address=\":${HTTPS_API_PORT}\" --entryPoints.httpsFiles.address=\":${HTTPS_FILES_PORT}\" --entryPoints.httpsBpmn.address=\":${HTTPS_BPMN_PORT}\" --entryPoints.mongo.address=\":${MONGO_PORT}\" --entryPoints.typedb.address=\":${TYPEDB_PORT}\" --ping=true --ping.entryPoint=traefik --serversTransport.insecureSkipVerify=true",
+    "darwin": " --log.level=DEBUG --providers.file.filename=\"${SERVICE_ROOT}/runtime/dynamic.yml\" --api.insecure=true --api.dashboard=true --entryPoints.web.address=\":${WEB_PORT}\" --entryPoints.websecure.address=\":${WEBSECURE_PORT}\" --entryPoints.traefik.address=\":${ADMIN_PORT}\" --entryPoints.httpsTraefik.address=\":${HTTPS_TRAEFIK_PORT}\" --entryPoints.httpsNginx.address=\":${HTTPS_NGINX_PORT}\" --entryPoints.httpsCms.address=\":${HTTPS_CMS_PORT}\" --entryPoints.httpsFlow.address=\":${HTTPS_FLOW_PORT}\" --entryPoints.httpsFlowtms.address=\":${HTTPS_FLOWTMS_PORT}\" --entryPoints.httpsApi.address=\":${HTTPS_API_PORT}\" --entryPoints.httpsFiles.address=\":${HTTPS_FILES_PORT}\" --entryPoints.httpsBpmn.address=\":${HTTPS_BPMN_PORT}\" --entryPoints.mongo.address=\":${MONGO_PORT}\" --entryPoints.typedb.address=\":${TYPEDB_PORT}\" --ping=true --ping.entryPoint=traefik --serversTransport.insecureSkipVerify=true",
+    "linux": " --log.level=DEBUG --providers.file.filename=\"${SERVICE_ROOT}/runtime/dynamic.yml\" --api.insecure=true --api.dashboard=true --entryPoints.web.address=\":${WEB_PORT}\" --entryPoints.websecure.address=\":${WEBSECURE_PORT}\" --entryPoints.traefik.address=\":${ADMIN_PORT}\" --entryPoints.httpsTraefik.address=\":${HTTPS_TRAEFIK_PORT}\" --entryPoints.httpsNginx.address=\":${HTTPS_NGINX_PORT}\" --entryPoints.httpsCms.address=\":${HTTPS_CMS_PORT}\" --entryPoints.httpsFlow.address=\":${HTTPS_FLOW_PORT}\" --entryPoints.httpsFlowtms.address=\":${HTTPS_FLOWTMS_PORT}\" --entryPoints.httpsApi.address=\":${HTTPS_API_PORT}\" --entryPoints.httpsFiles.address=\":${HTTPS_FILES_PORT}\" --entryPoints.httpsBpmn.address=\":${HTTPS_BPMN_PORT}\" --entryPoints.mongo.address=\":${MONGO_PORT}\" --entryPoints.typedb.address=\":${TYPEDB_PORT}\" --ping=true --ping.entryPoint=traefik --serversTransport.insecureSkipVerify=true",
+    "default": " --log.level=DEBUG --providers.file.filename=\"${SERVICE_ROOT}\\runtime\\dynamic.yml\" --api.insecure=true --api.dashboard=true --entryPoints.web.address=\":${WEB_PORT}\" --entryPoints.websecure.address=\":${WEBSECURE_PORT}\" --entryPoints.traefik.address=\":${ADMIN_PORT}\" --entryPoints.httpsTraefik.address=\":${HTTPS_TRAEFIK_PORT}\" --entryPoints.httpsNginx.address=\":${HTTPS_NGINX_PORT}\" --entryPoints.httpsCms.address=\":${HTTPS_CMS_PORT}\" --entryPoints.httpsFlow.address=\":${HTTPS_FLOW_PORT}\" --entryPoints.httpsFlowtms.address=\":${HTTPS_FLOWTMS_PORT}\" --entryPoints.httpsApi.address=\":${HTTPS_API_PORT}\" --entryPoints.httpsFiles.address=\":${HTTPS_FILES_PORT}\" --entryPoints.httpsBpmn.address=\":${HTTPS_BPMN_PORT}\" --entryPoints.mongo.address=\":${MONGO_PORT}\" --entryPoints.typedb.address=\":${TYPEDB_PORT}\" --ping=true --ping.entryPoint=traefik --serversTransport.insecureSkipVerify=true"
+  },
+  "env": {
+    "TRAEFIK_HTTP_PORT": "${WEB_PORT}",
+    "TRAEFIK_HTTPS_PORT": "${WEBSECURE_PORT}",
+    "TRAEFIK_INTERNAL_PORT": "${ADMIN_PORT}",
+    "TRAEFIK_HTTPS_TRAEFIK_PORT": "${HTTPS_TRAEFIK_PORT}",
+    "TRAEFIK_HTTPS_NGINX_PORT": "${HTTPS_NGINX_PORT}",
+    "TRAEFIK_HTTPS_CMS_PORT": "${HTTPS_CMS_PORT}",
+    "TRAEFIK_HTTPS_FLOW_PORT": "${HTTPS_FLOW_PORT}",
+    "TRAEFIK_HTTPS_FLOWTMS_PORT": "${HTTPS_FLOWTMS_PORT}",
+    "TRAEFIK_HTTPS_API_PORT": "${HTTPS_API_PORT}",
+    "TRAEFIK_HTTPS_FILES_PORT": "${HTTPS_FILES_PORT}",
+    "TRAEFIK_HTTPS_BPMN_PORT": "${HTTPS_BPMN_PORT}",
+    "TRAEFIK_MONGO_PORT": "${MONGO_PORT}",
+    "TRAEFIK_TYPEDB_PORT": "${TYPEDB_PORT}",
+    "TRAEFIK_WEB_URL": "http://127.0.0.1:${WEB_PORT}/",
+    "TRAEFIK_WEBSECURE_URL": "https://127.0.0.1:${WEBSECURE_PORT}/",
+    "TRAEFIK_DASHBOARD_URL": "http://127.0.0.1:${ADMIN_PORT}/dashboard/",
+    "TRAEFIK_PING_URL": "http://127.0.0.1:${ADMIN_PORT}/ping"
+  },
+  "globalenv": {
+    "TRAEFIK_HTTP_PORT": "${WEB_PORT}",
+    "TRAEFIK_HTTPS_PORT": "${WEBSECURE_PORT}",
+    "TRAEFIK_INTERNAL_PORT": "${ADMIN_PORT}",
+    "TRAEFIK_HTTPS_TRAEFIK_PORT": "${HTTPS_TRAEFIK_PORT}",
+    "TRAEFIK_HTTPS_NGINX_PORT": "${HTTPS_NGINX_PORT}",
+    "TRAEFIK_HTTPS_CMS_PORT": "${HTTPS_CMS_PORT}",
+    "TRAEFIK_HTTPS_FLOW_PORT": "${HTTPS_FLOW_PORT}",
+    "TRAEFIK_HTTPS_FLOWTMS_PORT": "${HTTPS_FLOWTMS_PORT}",
+    "TRAEFIK_HTTPS_API_PORT": "${HTTPS_API_PORT}",
+    "TRAEFIK_HTTPS_FILES_PORT": "${HTTPS_FILES_PORT}",
+    "TRAEFIK_HTTPS_BPMN_PORT": "${HTTPS_BPMN_PORT}",
+    "TRAEFIK_MONGO_PORT": "${MONGO_PORT}",
+    "TRAEFIK_TYPEDB_PORT": "${TYPEDB_PORT}",
+    "TRAEFIK_WEB_URL": "http://127.0.0.1:${WEB_PORT}/",
+    "TRAEFIK_WEBSECURE_URL": "https://127.0.0.1:${WEBSECURE_PORT}/",
+    "TRAEFIK_DASHBOARD_URL": "http://127.0.0.1:${ADMIN_PORT}/dashboard/",
+    "TRAEFIK_PING_URL": "http://127.0.0.1:${ADMIN_PORT}/ping",
+    "TRAEFIK_TRAEFIK_URL": "http://127.0.0.1:${ADMIN_PORT}/dashboard/",
+    "TRAEFIK_HOST_DOMAIN": "localhost",
+    "TRAEFIK_HOST_DOMAIN_URL": "localhost",
+    "TRAEFIK_HOST_DOMAIN_SUFFIX": "localhost"
+  },
+  "urls": [
+    {
+      "label": "dashboard",
+      "url": "http://127.0.0.1:${ADMIN_PORT}/dashboard/",
+      "kind": "local"
+    },
+    {
+      "label": "ping",
+      "url": "http://127.0.0.1:${ADMIN_PORT}/ping",
+      "kind": "local"
+    },
+    {
+      "label": "web",
+      "url": "http://127.0.0.1:${WEB_PORT}/",
+      "kind": "local"
+    },
+    {
+      "label": "websecure",
+      "url": "https://127.0.0.1:${WEBSECURE_PORT}/",
+      "kind": "local"
+    }
+  ],
+  "artifact": {
+    "kind": "archive",
+    "source": {
+      "type": "github-release",
+      "repo": "service-lasso/lasso-traefik",
+      "tag": "2026.4.27-bbc7f15"
+    },
+    "platforms": {
+      "win32": {
+        "assetName": "lasso-traefik-win32.zip",
+        "archiveType": "zip",
+        "command": ".\\traefik.exe",
+        "args": ["--configFile=runtime/traefik.yml"]
+      },
+      "linux": {
+        "assetName": "lasso-traefik-linux.tar.gz",
+        "archiveType": "tar.gz",
+        "command": "./traefik",
+        "args": ["--configFile=runtime/traefik.yml"]
+      },
+      "darwin": {
+        "assetName": "lasso-traefik-darwin.tar.gz",
+        "archiveType": "tar.gz",
+        "command": "./traefik",
+        "args": ["--configFile=runtime/traefik.yml"]
+      }
+    }
+  },
+  "install": {
+    "files": [
+      {
+        "path": "./runtime/dynamic.yml",
+        "content": "http:\n  routers: {}\n  services: {}\n"
+      }
+    ]
+  },
+  "config": {
+    "files": [
+      {
+        "path": "./runtime/traefik.yml",
+        "content": "entryPoints:\n  web:\n    address: \"127.0.0.1:${WEB_PORT}\"\n  websecure:\n    address: \"127.0.0.1:${WEBSECURE_PORT}\"\n  traefik:\n    address: \"127.0.0.1:${ADMIN_PORT}\"\n  httpsTraefik:\n    address: \"127.0.0.1:${HTTPS_TRAEFIK_PORT}\"\n  httpsNginx:\n    address: \"127.0.0.1:${HTTPS_NGINX_PORT}\"\n  httpsCms:\n    address: \"127.0.0.1:${HTTPS_CMS_PORT}\"\n  httpsFlow:\n    address: \"127.0.0.1:${HTTPS_FLOW_PORT}\"\n  httpsFlowtms:\n    address: \"127.0.0.1:${HTTPS_FLOWTMS_PORT}\"\n  httpsApi:\n    address: \"127.0.0.1:${HTTPS_API_PORT}\"\n  httpsFiles:\n    address: \"127.0.0.1:${HTTPS_FILES_PORT}\"\n  httpsBpmn:\n    address: \"127.0.0.1:${HTTPS_BPMN_PORT}\"\n  mongo:\n    address: \"127.0.0.1:${MONGO_PORT}\"\n  typedb:\n    address: \"127.0.0.1:${TYPEDB_PORT}\"\napi:\n  dashboard: true\nping:\n  entryPoint: traefik\nproviders:\n  file:\n    filename: \"./runtime/dynamic.yml\"\n    watch: true\nlog:\n  level: INFO\n"
+      }
+    ]
+  },
+  "healthcheck": {
+    "type": "http",
+    "url": "http://127.0.0.1:${ADMIN_PORT}/ping",
+    "expected_status": 200,
+    "retries": 80,
+    "interval": 250
+  }
+}
