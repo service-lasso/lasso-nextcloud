@@ -270,7 +270,7 @@ function fastcgiArgs() {
     return ['-c', fcgiIni, '-b', `${fastcgiHost}:${fastcgiPort}`];
   }
   writeFpmConfig();
-  return ['-F', '--fpm-config', fpmConf, '-c', fcgiIni];
+  return ['-F', '--nodaemonize', '--fpm-config', fpmConf, '-c', fcgiIni];
 }
 
 function configureOidc() {
@@ -395,7 +395,7 @@ try {
     });
     child.once('exit', (code, signal) => {
       if (!stopping) process.exitCode = code === 0 ? 1 : (code ?? 1);
-      console.log('[lasso-nextcloud] foreground FastCGI server exited' + (signal ? ' (' + signal + ')' : ''));
+      console.log(`[lasso-nextcloud] foreground FastCGI server exited (code=${code ?? 'null'}${signal ? ', signal=' + signal : ''})`);
       resolve();
     });
   });
