@@ -103,3 +103,9 @@ jobs:
             output/e2e
             .zitadel/zitadel.log
           if-no-files-found: warn
+
+      - name: Show FPM log on failure
+        if: failure()
+        shell: bash
+        run: |
+          find output/e2e -name 'php-fpm.log' -print -exec cat {} \; 2>/dev/null || true

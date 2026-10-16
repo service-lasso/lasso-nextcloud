@@ -270,7 +270,7 @@ function fastcgiArgs() {
     return ['-c', fcgiIni, '-b', `${fastcgiHost}:${fastcgiPort}`];
   }
   writeFpmConfig();
-  return ['--nodaemonize', '--fpm-config', fpmConf, '-c', fcgiIni];
+  return ['-F', '--fpm-config', fpmConf, '-c', fcgiIni];
 }
 
 function configureOidc() {

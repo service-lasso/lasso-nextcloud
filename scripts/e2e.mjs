@@ -203,8 +203,11 @@ try {
       report.steps.push({ step: "oidc-discovery", issuer: discovery.issuer });
       const providers = occ(extractRoot, childEnv, ["user_oidc:providers", "--output=json", "--no-warnings"]);
       const providersText = providers.stdout ?? "";
-      const providersStart = providersText.indexOf("[");
-      const configured = (providersStart >= 0 ? JSON.parse(providersText.slice(providersStart))[0] : null) ?? null;
+      const objStart = providersText.indexOf("{");
+      const arrStart = providersText.indexOf("[");
+      const start = arrStart >= 0 && (objStart < 0 || arrStart < objStart) ? arrStart : objStart;
+      const parsedProviders = start >= 0 ? JSON.parse(providersText.slice(start)) : null;
+      const configured = (Array.isArray(parsedProviders) ? parsedProviders[0] : parsedProviders) ?? null;
       if (!configured) throw new Error(`No user_oidc provider configured: ${providersText}`);
       const login = await fetch(`${frontBase}/apps/user_oidc/login/${configured.id}`, { redirect: "manual" });
       const location = login.headers.get("location") ?? "";
