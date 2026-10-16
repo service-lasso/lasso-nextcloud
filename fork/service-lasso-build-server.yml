@@ -1,0 +1,121 @@
+name: service-lasso-build-server
+
+# Builds a runnable Nextcloud server archive (bundling the 3rdparty submodule)
+# for the Service Lasso lasso-nextcloud service. The Windows compatibility
+# patches are applied here at build time so the branch source stays reviewable
+# and the upstream mirror is untouched.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Nextcloud version to build (must match the checked-out tag/branch)
+        required: true
+        default: "34.0.4"
+      publish:
+        description: Publish a GitHub release with the runnable archive
+        type: boolean
+        default: false
+  push:
+    branches:
+      - "servicelasso/master"
+      - "servicelasso/nextcloud-*"
+      - "servicelasso/feat/**"
+      - "servicelasso/fix/**"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Check out with submodules
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ github.event.inputs.version }}"
+          if [ -z "$version" ]; then
+            version="$(cat SERVICE-LASSO-VERSION 2>/dev/null || echo 34.0.4)"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Apply Service Lasso Windows compatibility patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const patches = [
+            {
+              file: 'lib/private/DB/MigrationService.php',
+              from: String.raw`'#^.+\\/Version[^\\/]{1,255}\\.php$#i'`,
+              to: String.raw`'#^.+[\\\\/]Version[^\\\\/]{1,255}\\.php$#i'`,
+              reason: 'Allow POSIX and Windows separators when discovering migrations.',
+            },
+            {
+              file: 'lib/private/legacy/OC_Util.php',
+              from: String.raw`if ($dataDirectory[0] !== '/') {`,
+              to: String.raw`if ($dataDirectory[0] !== '/' && !preg_match('/^[A-Za-z]:[\\\\\\/]/', $dataDirectory)) {`,
+              reason: 'Accept a Windows drive-qualified absolute data directory.',
+            },
+            {
+              file: 'lib/private/Files/Storage/Local.php',
+              from: String.raw`if (substr($realPath, 0, $this->dataDirLength) === $this->realDataDir) {`,
+              to: String.raw`if (str_replace('\\', '/', substr($realPath, 0, $this->dataDirLength)) === str_replace('\\', '/', $this->realDataDir)) {`,
+              reason: 'Normalize separators in the data-directory containment check.',
+            },
+          ];
+          for (const patch of patches) {
+            const source = fs.readFileSync(patch.file, 'utf8');
+            if (source.includes(patch.to)) continue;
+            if (!source.includes(patch.from)) throw new Error('Patch no longer matches upstream: ' + patch.file);
+            fs.writeFileSync(patch.file, source.replace(patch.from, patch.to));
+            console.log('[service-lasso] patched ' + patch.file + ' - ' + patch.reason);
+          }
+          NODE
+
+      - name: Stage and package runnable server archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.resolve.outputs.version }}"
+          rm -rf staging
+          mkdir -p staging/nextcloud
+          rsync -a --exclude '.git' --exclude 'staging' --exclude '.github' --exclude 'tests' ./ staging/nextcloud/
+          test -f staging/nextcloud/3rdparty/autoload.php
+          test -f staging/nextcloud/occ
+          ( cd staging && zip -qr "../nextcloud-${version}-service-lasso.zip" nextcloud )
+          sha256sum "nextcloud-${version}-service-lasso.zip" > "nextcloud-${version}-service-lasso.zip.sha256"
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextcloud-service-lasso
+          path: |
+            nextcloud-*-service-lasso.zip
+            nextcloud-*-service-lasso.zip.sha256
+
+      # Publishing requires contents:write, which this organisation only grants
+      # to manually dispatched workflow runs, so releases are cut by dispatching
+      # this workflow after merging into servicelasso/master.
+      - name: Publish release
+        if: github.event_name == 'workflow_dispatch' && inputs.publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.resolve.outputs.version }}-service-lasso.${{ github.run_number }}
+          name: Service Lasso Nextcloud ${{ steps.resolve.outputs.version }} (run ${{ github.run_number }})
+          target_commitish: ${{ github.sha }}
+          files: |
+            nextcloud-*-service-lasso.zip
+            nextcloud-*-service-lasso.zip.sha256
+          generate_release_notes: true

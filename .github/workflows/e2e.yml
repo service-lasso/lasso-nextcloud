@@ -1,0 +1,111 @@
+name: e2e
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-22.04
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install Caddy test front
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL -o caddy.tar.gz "https://github.com/caddyserver/caddy/releases/download/v2.11.7/caddy_2.11.7_linux_amd64.tar.gz"
+          tar -xzf caddy.tar.gz caddy
+          chmod +x caddy
+          echo "NEXTCLOUD_E2E_CADDY_BIN=$PWD/caddy" >> "$GITHUB_ENV"
+
+      - name: Download and start ZITADEL
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .zitadel/download .zitadel/bin
+          gh release download --repo service-lasso/lasso-zitadel \
+            --pattern 'lasso-zitadel-*-linux.tar.gz' \
+            --dir .zitadel/download
+          tar -xzf .zitadel/download/lasso-zitadel-*-linux.tar.gz -C .zitadel/bin
+          ZITADEL_BIN="$(find "$PWD/.zitadel/bin" -type f -name zitadel | head -n 1)"
+          test -x "$ZITADEL_BIN"
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -c 'create database zitadel;'
+          export ZITADEL_DATABASE_POSTGRES_DSN='postgresql://postgres:postgres@127.0.0.1:5432/zitadel?sslmode=disable'
+          export ZITADEL_MASTERKEY='service-lasso-e2e-masterkey-32b!'
+          export ZITADEL_EXTERNALDOMAIN='localhost'
+          export ZITADEL_EXTERNALPORT='8080'
+          export ZITADEL_EXTERNALSECURE='false'
+          export ZITADEL_TLS_ENABLED='false'
+          export ZITADEL_PORT='8080'
+          export ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED='false'
+          export ZITADEL_FIRSTINSTANCE_ORG_NAME='Service Lasso'
+          export ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME='admin'
+          export ZITADEL_FIRSTINSTANCE_ORG_HUMAN_EMAIL='admin@service-lasso.local'
+          export ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD='Service-Lasso1!'
+          ( "$ZITADEL_BIN" start-from-init --masterkeyFromEnv --tlsMode disabled > .zitadel/zitadel.log 2>&1 & )
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/debug/ready >/dev/null 2>&1; then echo "zitadel ready"; exit 0; fi
+            sleep 5
+          done
+          echo "zitadel did not become ready" >&2
+          tail -n 100 .zitadel/zitadel.log >&2 || true
+          exit 1
+
+      - name: Run full-stack E2E (Postgres + ZITADEL OIDC + WebDAV)
+        run: npm run e2e
+        env:
+          TARGET_PLATFORM: linux
+          NEXTCLOUD_E2E_PG_HOST: 127.0.0.1
+          NEXTCLOUD_E2E_PG_PORT: "5432"
+          NEXTCLOUD_E2E_PG_USER: postgres
+          NEXTCLOUD_E2E_PG_PASSWORD: postgres
+          NEXTCLOUD_E2E_PG_NAME: nextcloud
+          NEXTCLOUD_E2E_OIDC_ISSUER: http://localhost:8080
+          NEXTCLOUD_OIDC_CLIENT_ID: nextcloud-e2e
+          NEXTCLOUD_OIDC_CLIENT_SECRET: nextcloud-e2e-secret
+
+      - name: Upload E2E report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            output/e2e
+            .zitadel/zitadel.log
+          if-no-files-found: warn
+
+      - name: Show FPM log on failure
+        if: failure()
+        shell: bash
+        run: |
+          find output/e2e -name 'php-fpm.log' -print -exec cat {} \; 2>/dev/null || true

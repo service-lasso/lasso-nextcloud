@@ -1,134 +1,144 @@
 {
-  "id": "echo-service",
-  "name": "Echo Service",
-  "description": "Minimal sample service used to prove the service-template contract.",
+  "id": "nextcloud",
+  "name": "Nextcloud",
+  "description": "Release-backed Nextcloud FastCGI application backend for Service Lasso. Fronted by lasso-caddy and routed by lasso-traefik.",
+  "version": "34.0.4",
   "enabled": true,
-  "version": "0.1.0",
   "logoutput": true,
-  "icon": [
+  "endpoints": [
     {
-      "provider": "lucide",
-      "name": "terminal"
+      "id": "fastcgi",
+      "kind": "network",
+      "label": "FastCGI",
+      "direction": "inbound",
+      "transport": "tcp",
+      "protocol": "tcp",
+      "bind": "127.0.0.1",
+      "port": {
+        "default": 9000,
+        "strategy": "preferred"
+      },
+      "exposure": "local",
+      "required": true,
+      "primary": true
     }
   ],
-  "servicetype": 50,
-  "servicelocation": 10,
-  "logo": [],
-  "logs": {
-    "default": {
-      "path": "logs/echo-service.log"
-    }
+  "env": {
+    "NEXTCLOUD_FASTCGI_HOST": "${endpoint.fastcgi.bind}",
+    "NEXTCLOUD_FASTCGI_PORT": "${endpoint.fastcgi.port}",
+    "NEXTCLOUD_CONFIG_DIR": "${SERVICE_ROOT}/runtime/config",
+    "NEXTCLOUD_DATA_DIR": "${SERVICE_ROOT}/runtime/data",
+    "NEXTCLOUD_APPS_DIR": "${SERVICE_ROOT}/runtime/apps",
+    "NEXTCLOUD_DB_TYPE": "pgsql",
+    "NEXTCLOUD_DB_NAME": "nextcloud",
+    "NEXTCLOUD_DB_HOST": "${POSTGRES_HOST}",
+    "NEXTCLOUD_DB_PORT": "${POSTGRES_PORT}",
+    "NEXTCLOUD_DB_USER": "${POSTGRES_USER}",
+    "NEXTCLOUD_DB_PASSWORD": "${POSTGRES_PASSWORD}",
+    "NEXTCLOUD_ADMIN_USER": "admin",
+    "NEXTCLOUD_ADMIN_PASSWORD": "service-lasso",
+    "NEXTCLOUD_ADMIN_EMAIL": "admin@service-lasso.local",
+    "NEXTCLOUD_OIDC_ENABLED": "true",
+    "NEXTCLOUD_OIDC_ISSUER": "${ZITADEL_URL}",
+    "NEXTCLOUD_OIDC_PROVIDER_NAME": "Zitadel",
+    "NEXTCLOUD_OIDC_CLIENT_ID": "",
+    "NEXTCLOUD_OIDC_CLIENT_SECRET": "",
+    "NEXTCLOUD_OIDC_SCOPE": "openid email profile"
   },
-  "meta": {
-    "developers": [
-      {
-        "name": "Service Lasso contributors"
-      }
-    ],
-    "license": "Apache-2.0",
-    "repository": {
-      "type": "git",
-      "url": "https://github.com/service-lasso/service-template.git"
-    },
-    "websiteUrl": "https://github.com/service-lasso/service-template",
-    "documentationUrl": "https://github.com/service-lasso/service-template/blob/main/README.md",
-    "issuesUrl": "https://github.com/service-lasso/service-template/issues",
-    "support": {
-      "issuesUrl": "https://github.com/service-lasso/service-template/issues"
-    },
-    "links": {
-      "repository": "https://github.com/service-lasso/service-template",
-      "issues": "https://github.com/service-lasso/service-template/issues",
-      "documentation": "https://github.com/service-lasso/service-template/blob/main/README.md"
-    },
-    "tags": [
-      "service-lasso",
-      "template",
-      "example-service"
-    ]
+  "globalenv": {
+    "NEXTCLOUD_FASTCGI_HOST": "${endpoint.fastcgi.bind}",
+    "NEXTCLOUD_FASTCGI_PORT": "${endpoint.fastcgi.port}",
+    "NEXTCLOUD_FASTCGI_ADDR": "${endpoint.fastcgi.bind}:${endpoint.fastcgi.port}",
+    "NEXTCLOUD_SOURCE_DIR": "${SERVICE_ARTIFACT_ROOT}/nextcloud",
+    "NEXTCLOUD_DATA_DIR": "${SERVICE_ROOT}/runtime/data",
+    "NEXTCLOUD_CONFIG_DIR": "${SERVICE_ROOT}/runtime/config"
   },
   "artifact": {
     "kind": "archive",
     "source": {
       "type": "github-release",
-      "repo": "service-lasso/service-template",
+      "repo": "service-lasso/lasso-nextcloud",
       "channel": "latest"
     },
     "platforms": {
       "win32": {
-        "assetName": "echo-service-win32.zip",
+        "assetName": "lasso-nextcloud-34.0.4-win32.zip",
         "archiveType": "zip",
-        "command": "./echo-service.exe",
+        "command": "node ./lasso-nextcloud.mjs",
         "args": []
       },
       "darwin": {
-        "assetName": "echo-service-darwin.tar.gz",
+        "assetName": "lasso-nextcloud-34.0.4-darwin.tar.gz",
         "archiveType": "tar.gz",
-        "command": "./echo-service",
+        "command": "node ./lasso-nextcloud.mjs",
         "args": []
       },
       "linux": {
-        "assetName": "echo-service-linux.tar.gz",
+        "assetName": "lasso-nextcloud-34.0.4-linux.tar.gz",
         "archiveType": "tar.gz",
-        "command": "./echo-service",
-        "args": []
-      },
-      "default": {
-        "assetName": "echo-service-win32.zip",
-        "archiveType": "zip",
-        "command": "./echo-service.exe",
+        "command": "node ./lasso-nextcloud.mjs",
         "args": []
       }
     }
   },
-  "actions": {
-    "install": {
-      "description": "Acquire or unpack the packaged echo-service runtime artifact.",
-      "mode": "converge-install",
-      "idempotent": true
-    },
-    "config": {
-      "description": "Materialize deployment-local echo-service config and env values.",
-      "mode": "converge-config",
-      "idempotent": true
-    },
-    "update": {
-      "description": "Apply a newer release artifact and reconcile update-time changes before restart.",
-      "mode": "converge-update",
-      "idempotent": true
-    },
-    "start": {
-      "description": "Start the sample echo service.",
-      "mode": "runtime-start",
-      "idempotent": true
-    },
-    "stop": {
-      "description": "Stop the sample echo service gracefully.",
-      "mode": "runtime-stop",
-      "idempotent": true
-    },
-    "restart": {
-      "description": "Restart the sample echo service after config or update changes.",
-      "mode": "runtime-restart",
-      "idempotent": false
-    },
-    "rollback": {
-      "description": "Restore the previously deployed artifact if an update fails validation.",
-      "mode": "state-rollback",
-      "idempotent": false
-    }
+  "install": {
+    "files": [
+      {
+        "path": "./runtime/config/.keep",
+        "content": ""
+      },
+      {
+        "path": "./runtime/apps/.keep",
+        "content": ""
+      },
+      {
+        "path": "./logs/.keep",
+        "content": ""
+      }
+    ]
   },
-  "execconfig": {
-    "serviceorder": 100,
-    "serviceport": 0,
-    "execcwd": "runtime",
-    "executable": "echo-service",
-    "env": {
-      "ECHO_MESSAGE": "hello from service-template"
-    },
-    "depend_on": [],
-    "healthcheck": {
-      "type": "process"
+  "updates": {
+    "enabled": true,
+    "mode": "notify",
+    "track": "latest",
+    "checkIntervalSeconds": 86400
+  },
+  "depend_on": [
+    "@node",
+    "postgres",
+    "zitadel"
+  ],
+  "execservice": "@node",
+  "args": [
+    "${SERVICE_ARTIFACT_ROOT}/lasso-nextcloud.mjs"
+  ],
+  "healthcheck": {
+    "id": "fastcgi-ready",
+    "type": "tcp",
+    "address": "${endpoint.fastcgi.bind}:${endpoint.fastcgi.port}",
+    "retries": 2400,
+    "interval": 500
+  },
+  "icon": [
+    {
+      "provider": "lucide",
+      "name": "cloud"
     }
+  ],
+  "meta": {
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/service-lasso/lasso-nextcloud.git"
+    },
+    "documentationUrl": "https://github.com/service-lasso/lasso-nextcloud/blob/main/README.md",
+    "issuesUrl": "https://github.com/service-lasso/lasso-nextcloud/issues",
+    "tags": [
+      "service-lasso",
+      "nextcloud",
+      "files",
+      "collaboration",
+      "php",
+      "fastcgi"
+    ]
   }
 }

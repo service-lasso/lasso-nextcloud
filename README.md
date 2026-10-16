@@ -1,152 +1,68 @@
-# service-template
+# lasso-nextcloud
 
-_Status: starter template repo_
+`lasso-nextcloud` packages [Nextcloud](https://nextcloud.com/) as a **FastCGI application backend** for Service Lasso.
 
-`service-template` is the canonical starting point for new Service Lasso service repos.
+It does not run an HTTP server. The service installs Nextcloud, provisions PostgreSQL, and hosts a FastCGI pool (`php-cgi` on Windows, `php-fpm` on Linux/macOS). An external front — [lasso-caddy](https://github.com/service-lasso/lasso-caddy) — translates HTTP to FastCGI, and [lasso-traefik](https://github.com/service-lasso/lasso-traefik) routes at the edge.
 
-Use this repo when you want to create a new service repo that already has:
-- the expected service repo layout
-- a starter `service.json`
-- a starter `services/` inventory example for app/reference repos that embed Service Lasso
-- starter packaging scripts
-- starter verify scripts and harness contract shape
-- starter docs for service contract, packaging, and validation
-- starter CI scaffolding
-- documented GitHub-template-first repo bootstrap flow
-- runtime extension guidance for compiled daemons, Node services, and bootstrap/system services
-
-## Use this template
-
-Recommended flow:
-
-1. Create the new GitHub repo **through GitHub's template mechanism** from `service-lasso/service-template`.
-   - GitHub UI: click **Use this template** on this repo.
-   - GitHub CLI: `gh repo create service-lasso/<repo-name> --public --template service-lasso/service-template`.
-2. Verify GitHub recorded the origin:
-
-   ```powershell
-   gh api repos/service-lasso/<repo-name> --jq '.template_repository.full_name'
-   # must print: service-lasso/service-template
-   ```
-
-3. Clone the new GitHub-created repo locally.
-4. Rename the sample service files/content for the real service.
-5. Replace the sample runtime payload with the real service payload.
-6. Update `service.json`, `verify/service-harness.json`, workflows, package/test/verify scripts, and docs for the new service.
-7. Run the local package + test flow.
-8. Open a focused PR and wait for `validate-template` to pass on Windows/Linux/macOS.
-
-Do **not** start from a local copy or another service repo and retrofit the template later. File parity is not enough; the GitHub repo itself must show it was generated from `service-lasso/service-template`.
-
-See `docs/bootstrap-new-service-repo.md` for the full GitHub-template-first checklist and remediation process for incorrectly-created repos.
-
-## Quick start
-
-### Local package
-
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\package.ps1
+```
+Traefik  ──HTTP──>  Caddy (lasso-caddy)  ──FastCGI──>  lasso-nextcloud (php-cgi / php-fpm)
 ```
 
-### Local tests
+## Service Contract
 
-```powershell
-pwsh -NoLogo -NoProfile -File .\scripts\test.ps1
+- Service ID: `nextcloud`
+- Upstream server: `nextcloud-34.0.4`
+- Runtime backend: FastCGI — `php-cgi` (Windows) / `php-fpm` (Linux, macOS), PHP `8.3.32`
+- Primary endpoint: `fastcgi` (`tcp`, loopback, preferred port `9000`)
+- Health: TCP readiness on `${endpoint.fastcgi.bind}:${endpoint.fastcgi.port}`
+- Dependencies: `@node` (launcher provider), `postgres` (database), `zitadel` (identity)
+- Identity: [ZITADEL](https://zitadel.com/) OIDC via the bundled Nextcloud `user_oidc` app
+- Data: `${SERVICE_ROOT}/runtime/data`; Config: `${SERVICE_ROOT}/runtime/config`; Apps: `${SERVICE_ROOT}/runtime/apps`
+- Default admin: `admin` / `service-lasso`
+- Release platforms: `win32`, `linux`, `darwin`
+
+The service exports `NEXTCLOUD_FASTCGI_ADDR` (`host:port`) and `NEXTCLOUD_SOURCE_DIR` so the front (lasso-caddy) can point `php_fastcgi` at the pool and set its `root` to the Nextcloud source. `overwritehost`/`overwriteprotocol` are cleared so the front-end's `Host` header is honoured; add public hostnames via `NEXTCLOUD_TRUSTED_DOMAINS` and set `NEXTCLOUD_PUBLIC_URL` to pin the CLI URL.
+
+## Release Artifacts
+
+Pushes to `main` create a GitHub release named with the Service Lasso version pattern:
+
+```text
+yyyy.m.d-<shortsha>
 ```
 
-## Start here for deeper design context
+The release contains:
 
-Read in this order if you need the underlying design/spec context:
+- `lasso-nextcloud-34.0.4-win32.zip`
+- `lasso-nextcloud-34.0.4-linux.tar.gz`
+- `lasso-nextcloud-34.0.4-darwin.tar.gz`
+- `service.json`
+- `SHA256SUMS.txt`
 
-1. `docs/openspec-drafts/SPEC-SERVICE-TEMPLATE-REPO.md`
-2. `docs/openspec-drafts/OPENSPEC-TRACKER.md`
-3. `docs/service-contract.md`
-4. `docs/service-json-reference.md`
-5. `docs/packaging.md`
-6. `docs/validation.md`
-7. `docs/bootstrap-new-service-repo.md`
-8. `docs/runtime-extension-points.md`
-9. `docs/reference/adjacent/SPEC-SERVICE-LASSO-HARNESS.md`
+Each archive bundles the pinned Nextcloud server, the platform PHP runtime (`php` CLI + `php-cgi`/`php-fpm` + extensions) and the Node launcher.
 
-## What is here
+## Local Validation
 
-### OpenSpec drafts
-- `docs/openspec-drafts/SPEC-SERVICE-TEMPLATE-REPO.md`
-- `docs/openspec-drafts/OPENSPEC-TRACKER.md`
+```powershell
+npm test
+```
 
-### Supporting reference/planning docs
-- `docs/service-contract.md`
-- `docs/service-json-reference.md`
-- `docs/packaging.md`
-- `docs/validation.md`
-- `docs/reference/SERVICE-TEMPLATE-REPO.md`
-- `docs/reference/SERVICE-STRUCTURE-REVIEW.md`
-- `docs/reference/PROPOSED-CODEBASE-STRUCTURE.md`
-- `docs/reference/DECISION-CONTEXT.md`
-- `docs/reference/shared-runtime/QUESTION-LIST-AND-CODE-VALIDATION.md`
-- `docs/reference/shared-runtime/ARCHITECTURE-DECISIONS.md`
-- `docs/reference/shared-runtime/SERVICE-MANAGER-BEHAVIOR.md`
-- `docs/reference/adjacent/SPEC-SERVICE-LASSO-HARNESS.md`
-- `docs/reference/EXAMPLE-REPO-TREE.md`
-- `docs/reference/EXAMPLE-service.json`
-- `docs/reference/EXAMPLE-service-harness.json`
-- `docs/reference/EXAMPLE-verify.ps1`
-- `docs/reference/EXAMPLE-verify.sh`
+This packages the current platform artifact, validates the canonical FastCGI manifest, extracts it, materializes the install files, installs Nextcloud against a bundled SQLite database, confirms the FastCGI pool accepts connections and reports `installed`, and confirms the installation is retained across a restart. Set `NEXTCLOUD_PACKAGE_ARCHIVE` to verify a held archive.
 
-## Purpose
+### End-to-end acceptance
 
-This repo is the canonical starting point for Service Lasso service repos.
+```powershell
+npm run e2e
+```
 
-Its role is to define:
-- one-service-per-repo expectations
-- service repo layout
-- service author documentation expectations
-- sample service expectations
-- packaging/release expectations
-- validation-harness integration expectations
+Installs against PostgreSQL (when `NEXTCLOUD_E2E_PG_HOST` is set, otherwise SQLite) and confirms FastCGI readiness + retained restart. When a front is configured (`NEXTCLOUD_E2E_CADDY_BIN` for a test Caddy, or `NEXTCLOUD_E2E_FRONT_BASE_URL` from lasso-caddy) it also performs a real Nextcloud **WebDAV file round-trip**; with `NEXTCLOUD_E2E_OIDC_ISSUER` it verifies ZITADEL OIDC discovery, the `user_oidc` provider and a real login redirect. `e2e.yml` runs it on Linux with PostgreSQL, ZITADEL and a Caddy front.
 
-## Current status
+### OIDC bootstrap
 
-This repo is usable now as a starter template.
+`npm run test:oidc` runs the metadata-only OIDC bootstrap contract for the ZITADEL `nextcloud` application (see [docs/maintainer-reference.md](docs/maintainer-reference.md)).
 
-It currently includes:
-- actual starter repo files (`service.json`, `verify/`, `scripts/`, `runtime/`, `config/`, `.github/workflows/`)
-- a tracked example `services/` inventory for downstream app/reference repos
-- a packaged first-pass sample artifact at `dist/echo-service-win32.zip`
-- a starter multi-OS GitHub Actions workflow that packages release archives and runs basic tests
-- starter harness-contract files and thin verify wrappers
-- supporting reference/spec docs for deeper design work
+## Windows Compatibility Patches
 
-Important current validation note:
-- the pipeline now downloads and invokes the released `service-lasso-harness` binary in CI
-- it still keeps the starter local package/test flow alongside harness verification
-- the current harness version is pinned in workflow config and can be advanced intentionally over time
+Nextcloud does not support Windows as a server platform. The Windows archive applies documented, guarded compatibility patches to the bundled server (migration discovery, data-directory validation, data-directory containment). Windows install/readiness work; the known issue is described in [docs/maintainer-reference.md](docs/maintainer-reference.md). The [fork build](fork/README.md) (`service-lasso/fork-nextcloud-server`) is the home for the complete Windows fix set. Set `NEXTCLOUD_FORK_SERVER_ARCHIVE` to package the fork archive instead of the upstream release.
 
-Important current manifest note:
-- the bounded first-pass core runtime now expects service release/install metadata to live directly in `service.json`
-- the current template example uses a bounded `artifact.kind`, `artifact.source`, and `artifact.platforms` shape to show that direction explicitly
-- bundled app artifacts mean the app package step has already acquired service archives into `services/<service-id>/.state/artifacts/<tag>/<assetName>` so first run can install without downloading those archives
-
-## Baseline app inventory rule
-
-This repo still models the canonical one-service-per-repo contract through the root `service.json`.
-
-In addition, it now carries a tracked example `services/` inventory to show what app/reference repos should own when they embed Service Lasso.
-
-Current baseline inventory:
-- `services/echo-service/service.json`
-- `services/@serviceadmin/service.json`
-- `services/@node/service.json`
-- `services/@localcert/service.json`
-- `services/@nginx/service.json`
-- `services/@traefik/service.json`
-
-Optional provider inventory:
-- `services/@python/service.json` disabled release-backed Python 3.11.5 provider; Windows artifact only
-- `services/@java/service.json` disabled release-backed Java 17 provider
-
-Important rule:
-- app/reference repos should own the exact `services/` manifests for the services they intend to manage
-- if an app repo includes `@serviceadmin`, it should also include the manifests needed to satisfy Service Admin's declared service dependencies
-- core Service Lasso services use the `@` prefix: `@node`, `@python`, `@java`, `@localcert`, `@nginx`, `@traefik`, `@serviceadmin`, and `@secretsbroker`; `echo-service` stays unprefixed because it is the sample/test managed service
-- environment settings like `VITE_SERVICE_LASSO_API_BASE_URL` still belong in app/runtime config, not as extra service manifests
+[Service contract, packaging, and maintainer commands](docs/maintainer-reference.md)

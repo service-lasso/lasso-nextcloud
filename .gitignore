@@ -2,4 +2,6 @@
 .tmp/
 dist/
 output/
+node_modules/
+vendor/
 verify/service-harness.ci.json
