@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
@@ -128,15 +129,33 @@ for (const file of serviceManifest.install?.files ?? []) {
 }
 
 const phpDir = path.join(extractRoot, "php");
+const phpBin = path.join(phpDir, platform === "win32" ? "php.exe" : "php");
+const fastcgiBin = path.join(phpDir, platform === "win32" ? "php-cgi.exe" : "php-fpm");
 const configDir = path.join(serviceRoot, "runtime", "config");
+
+// The static-php Linux/macOS builds do not include pdo_sqlite, so the
+// self-contained SQLite smoke cannot run there; the functional Postgres journey
+// is covered by the E2E. Select a database when one is usable, otherwise assert
+// packaging only.
+function hasExtension(name) {
+  const result = spawnSync(phpBin, ["-c", path.join(extractRoot, "php.ini"), "-m"], { encoding: "utf8", windowsHide: true });
+  return new RegExp(`(^|\\n)${name}\\b`, "m").test(result.stdout ?? "");
+}
+const pgHost = process.env.NEXTCLOUD_VERIFY_PG_HOST;
+const dbKind = pgHost ? "pgsql" : (hasExtension("pdo_sqlite") ? "sqlite" : "none");
+
 const childEnv = {
   ...process.env,
   SERVICE_ROOT: serviceRoot,
   SERVICE_PORT: String(port),
   NEXTCLOUD_FASTCGI_HOST: "127.0.0.1",
   NEXTCLOUD_FASTCGI_PORT: String(port),
-  NEXTCLOUD_DB_TYPE: "sqlite",
-  NEXTCLOUD_DB_NAME: "nextcloud",
+  NEXTCLOUD_DB_TYPE: dbKind === "pgsql" ? "pgsql" : "sqlite",
+  NEXTCLOUD_DB_NAME: process.env.NEXTCLOUD_VERIFY_PG_NAME ?? "nextcloud",
+  NEXTCLOUD_DB_HOST: pgHost ?? "127.0.0.1",
+  NEXTCLOUD_DB_PORT: process.env.NEXTCLOUD_VERIFY_PG_PORT ?? "5432",
+  NEXTCLOUD_DB_USER: process.env.NEXTCLOUD_VERIFY_PG_USER ?? "postgres",
+  NEXTCLOUD_DB_PASSWORD: process.env.NEXTCLOUD_VERIFY_PG_PASSWORD ?? "postgres",
   NEXTCLOUD_CONFIG_DIR: configDir,
   NEXTCLOUD_DATA_DIR: path.join(serviceRoot, "runtime", "data"),
   NEXTCLOUD_APPS_DIR: path.join(serviceRoot, "runtime", "apps"),
@@ -192,6 +211,35 @@ async function wrapperStop() {
 }
 
 const cycles = [];
+if (dbKind === "none") {
+  if (!existsSync(path.join(extractRoot, "SERVICE-LASSO-PACKAGE.json"))) {
+    throw new Error("Package metadata is missing from the archive.");
+  }
+  if (!existsSync(fastcgiBin)) {
+    throw new Error(`FastCGI binary is missing from the archive: ${fastcgiBin}`);
+  }
+  const version = spawnSync(fastcgiBin, ["-v"], { encoding: "utf8", windowsHide: true });
+  if (version.status !== 0) {
+    throw new Error(`FastCGI binary did not run: ${version.stderr || version.stdout}`);
+  }
+  await writeFile(
+    path.join(verifyRoot, "lifecycle-verification.json"),
+    JSON.stringify(
+      {
+        platform,
+        artifact,
+        backend: platform === "win32" ? "php-cgi" : "php-fpm",
+        database: "skipped (no pdo_sqlite in the static-php build)",
+        note: "packaging + FastCGI runtime only; the functional database/WebDAV journey is covered by the E2E (PostgreSQL)",
+      },
+      null,
+      2,
+    ),
+  );
+  console.log("[lasso-nextcloud] packaging and FastCGI runtime PASS (database smoke skipped)");
+  process.exit(0);
+}
+
 try {
   launch();
   await waitForTcp(port);
