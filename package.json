@@ -1,0 +1,15 @@
+{
+  "name": "lasso-nextcloud",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Release-backed Nextcloud service package for Service Lasso.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "package": "node scripts/package.mjs",
+    "test": "node scripts/verify.mjs",
+    "test:oidc": "node scripts/oidc-bootstrap.test.mjs",
+    "e2e": "node scripts/e2e.mjs",
+    "release:verify": "node scripts/verify.mjs"
+  }
+}
