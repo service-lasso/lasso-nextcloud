@@ -23,6 +23,16 @@
       "primary": true
     }
   ],
+  "ingress": [
+    {
+      "domain": "nextcloud.servicelasso.localhost",
+      "proxy": {
+        "type": "fastcgi",
+        "endpoint": "fastcgi",
+        "root": "${NEXTCLOUD_SOURCE_DIR}"
+      }
+    }
+  ],
   "env": {
     "NEXTCLOUD_FASTCGI_HOST": "${endpoint.fastcgi.bind}",
     "NEXTCLOUD_FASTCGI_PORT": "${endpoint.fastcgi.port}",
