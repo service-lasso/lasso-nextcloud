@@ -132,6 +132,30 @@ const windowsCompatibilityPatches = [
     to: String.raw`if (str_replace('\\', '/', substr($realPath, 0, $this->dataDirLength)) === str_replace('\\', '/', $this->realDataDir)) {`,
     reason: "Compare data-directory containment with normalized separators so realpath() output matches on Windows.",
   },
+  {
+    file: "apps/dav/lib/Connector/Sabre/Directory.php",
+    from: "\t\t\t$scanPath = $destinationPath;\n\t\t\twhile (($scanPath = dirname($scanPath)) !== '/') {",
+    to: "\t\t\t$scanPath = $destinationPath;\n\t\t\twhile (true) {\n\t\t\t\t$parent = dirname($scanPath);\n\t\t\t\tif ($parent === $scanPath || $parent === '.' || $parent === '' || $parent === '/' || $parent === '\\\\' || preg_match('/^[A-Za-z]:[\\/\\\\\\\\]?$/', $parent) === 1) {\n\t\t\t\t\tbreak;\n\t\t\t\t}\n\t\t\t\t$scanPath = $parent;",
+    reason: "Walk DAV ancestors to the Windows drive root instead of looping forever when dirname() never returns '/'.",
+  },
+  {
+    file: "lib/private/Files/Mount/Manager.php",
+    from: "\t\t\t$current = dirname($current);\n\t\t\tif ($current === '.' || $current === '/') {\n\t\t\t\t$current = '';\n\t\t\t}",
+    to: "\t\t\t$parent = dirname($current);\n\t\t\tif ($parent === $current || $parent === '.' || $parent === '/' || $parent === '\\\\' || preg_match('/^[A-Za-z]:[\\/\\\\\\\\]?$/', $parent) === 1) {\n\t\t\t\t$current = '';\n\t\t\t} else {\n\t\t\t\t$current = $parent;\n\t\t\t}",
+    reason: "Stop mount lookup at the Windows drive root instead of spinning when dirname() makes no progress.",
+  },
+  {
+    file: "lib/private/Files/SetupManager.php",
+    from: "\t\twhile (($path = dirname($path)) !== '/') {\n\t\t\t$setupPath = $this->setupMountProviderPaths[$path . '/'] ?? null;",
+    to: "\t\twhile (true) {\n\t\t\t$parent = dirname($path);\n\t\t\tif ($parent === $path || $parent === '.' || $parent === '' || $parent === '/' || $parent === '\\\\' || preg_match('/^[A-Za-z]:[\\/\\\\\\\\]?$/', $parent) === 1) {\n\t\t\t\tbreak;\n\t\t\t}\n\t\t\t$path = $parent;\n\t\t\t$setupPath = $this->setupMountProviderPaths[$path . '/'] ?? null;",
+    reason: "Stop ancestor setup lookup at the Windows drive root instead of looping forever.",
+  },
+  {
+    file: "lib/private/Files/Config/UserMountCache.php",
+    from: "\t\t\t$current = dirname($current);\n\t\t\tif ($current === '.' || $current === '/') {\n\t\t\t\t$current = '';\n\t\t\t}",
+    to: "\t\t\t$parent = dirname($current);\n\t\t\tif ($parent === $current || $parent === '.' || $parent === '/' || $parent === '\\\\' || preg_match('/^[A-Za-z]:[\\/\\\\\\\\]?$/', $parent) === 1) {\n\t\t\t\t$current = '';\n\t\t\t} else {\n\t\t\t\t$current = $parent;\n\t\t\t}",
+    reason: "Stop cached-mount ancestor walk at the Windows drive root instead of looping forever.",
+  },
 ];
 
 async function applyWindowsCompatibilityPatches(nextcloudRoot) {
